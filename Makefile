@@ -1,5 +1,5 @@
-sources = source/main.lua
-assets = source/images/blackStone.png
+sources = source/main.lua source/engine.lua source/util.lua
+assets =
 
 all: GoGame.pdx
 

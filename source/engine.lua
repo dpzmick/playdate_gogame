@@ -3,23 +3,61 @@ import "util"
 Engine = {}
 
 function Engine:new(n)
-  ret = {n=n, cells=createGrid(n), lastX=nil, lastY=nil}
+  local ret = {n=n, cells=createGrid(n), lastX=nil, lastY=nil}
   setmetatable(ret, self)
   self.__index = self
   return ret
 end
 
+function Engine:clone()
+  local ret = Engine:new(self.n)
+  ret.lastX = self.lastX
+  ret.lastY = self.lastY
+  for x=1,self.n do
+    for y=1,self.n do
+      ret.cells[x][y] = self.cells[x][y]
+    end
+  end
+  return ret
+end
+
 function Engine:addStone(x,y,color)
-  if self.cells[x][y] == nil then
-    self.cells[x][y] = color
-    self.lastX = x
-    self.lastY = y
-    return true
+  if self.cells[x][y] ~= nil then
+    return false
   end
 
-  -- FIXME else show an error
+  -- to check for suicidal plays, copy engine state,
+  -- insert into copy, then check if the new location survives
+  local c = self:clone()
+  c.cells[x][y] = color
+  c.lastX = x
+  c.lastY = y
+  c:killStones()
+
+  -- FIXME killStones will not kill because I'm using last group to detect
+  -- death.
+  -- I'm still missing something in this logic
+
+  if c.cells[x][y] == nil then
+    -- this was a suicidal play
+    return false
+  end
+
+  -- this is a safe insert to perform
+  self.cells[x][y] = color
+  self.lastX = x
+  self.lastY = y
+  return true
+
+  -- should maybe do uptree style groups
+  --
+  -- then do stone additon by:
+  -- - add stone to cells and join/create groups
+  -- - adjust liberties for all(?) groups
+  -- - if the only group to die is the newly added one, reject the move
+  --   - note that there should have been zero dead groups before the update
+
   -- FIXME ko rules
-  -- FIXME disallow suicide
 end
 
 -- to check if a group gets killed, we floodfill around all the groups?
@@ -114,7 +152,19 @@ function Engine:killStones()
     end
   end
 
-  --tprint(groupLiberties)
+  -- io.write("Liberties:\n")
+  -- for x=1,self.n do
+  --   for y=1,self.n do
+  --     local c = cellGroups[x][y]
+  --     local l = groupLiberties[c]
+  --     if l~=nil then
+  --       io.write(string.format("%3d ", l))
+  --     else
+  --       io.write("nil ")
+  --     end
+  --   end
+  --   io.write('\n')
+  -- end
 
   -- kill any stones with zero liberties
   -- unless the group is the group that was played
@@ -141,4 +191,5 @@ function Engine:killStones()
   end
 end
 
--- FIXME allow for passing
+-- FIXME allow for passing (adds a prisoner)
+-- FIXME for final scoring, mark dead strings

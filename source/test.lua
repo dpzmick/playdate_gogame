@@ -149,6 +149,36 @@ W W W . .
   e:killStones()
 
   cellAssert(5, e.cells, expect)
+
+  ----------------------
+
+  inpt = makeCells(7, [[
+B B B B B . .
+B W W W B . .
+B W B W B . .
+B W W W B . .
+B B B B B . .
+. . . . . . .
+]])
+
+  expect = makeCells(7, [[
+B B B B B . .
+B . . . B . .
+B . B . B . .
+B . . . B . .
+B B B B B . .
+. . . . . . .
+]])
+
+  e = Engine:new(7)
+
+  e.cells = inpt
+  e.lastX = 3
+  e.lastY = 3
+
+  e:killStones()
+
+  cellAssert(7, e.cells, expect)
 end
 
 local function testMultiCapture()
@@ -181,6 +211,19 @@ B B . B B B B
   cellAssert(7, e.cells, expect)
 end
 
+local function testNoSuicide()
+  e = Engine:new(5)
+  e.cells = makeCells(5, [[
+. W . . .
+W W . . .
+. . . . .
+. . . . .
+. . . . .
+]])
+
+  assert(false == e:addStone(1,1,1)) -- would be suicide
+end
+
 testCreateGrid()
 test1()
 test2()
@@ -188,3 +231,4 @@ testSimpleKill()
 testComplexKill()
 testNotActuallySuicide()
 testMultiCapture()
+--testNoSuicide()

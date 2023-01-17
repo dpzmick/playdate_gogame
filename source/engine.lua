@@ -1,13 +1,19 @@
 import "util"
 
--- game state
-cursorLoc = {x=1, y=1}
-N = 9;
-cells = createGrid(N)
+Engine = {}
 
-function addStone(x,y,color)
-  if cells[x][y] == nil then
-    cells[x][y] = color
+function Engine:new(n)
+  ret = {n=n, cells=createGrid(n), lastX=nil, lastY=nil}
+  setmetatable(ret, self)
+  self.__index = self
+  return ret
+end
+
+function Engine:addStone(x,y,color)
+  if self.cells[x][y] == nil then
+    self.cells[x][y] = color
+    self.lastX = x
+    self.lastY = y
     return true
   end
 
@@ -20,20 +26,24 @@ end
 -- should I use an uptree structure to join these groups?
 -- this bit of the problem is a bit interesting
 
-function killStones()
+function Engine:killStones()
   --print("killing")
 
   -- learn all of the groups on the board
   -- group is id'd by the first cell we encounter in the group
   -- save the group for _every_ cell (or nil if no stone)
-  local cellGroups = createGrid(N)
+  local cellGroups = createGrid(self.n)
 
   function dfsGroup(x,y,groupColor,groupID)
-    if x <= 0 or x > N or y <= 0 or y > N then
+    if x <= 0 or x > self.n or y <= 0 or y > self.n then
       return
     end
 
-    local cell = cells[x][y]
+    if cellGroups[x][y] ~= nil then
+      return
+    end
+
+    local cell = self.cells[x][y]
 
     -- nothing left to explore in this direction
     if cell ~= groupColor then
@@ -43,8 +53,7 @@ function killStones()
     -- assign to the group
     cellGroups[x][y] = groupID
 
-    -- always work down/left so we don't get stuck in a cycle
-    for _, off in ipairs({ {1,0}, {0,1} }) do
+    for _, off in ipairs({ {1,0}, {0,1}, {-1,0}, {0,-1} }) do
       local x_off = off[1]
       local y_off = off[2]
       dfsGroup(x+x_off, y+y_off, groupColor, groupID)
@@ -52,24 +61,33 @@ function killStones()
   end
 
   -- trigger the DFS
-  for x=1, N do
-    for y=1, N do
-      local cell = cells[x][y] -- nil or color
+  for x=1, self.n do
+    for y=1, self.n do
+      local cell = self.cells[x][y] -- nil or color
 
       if cell ~= nil then
         if cellGroups[x][y] == nil then
           local groupID = x .. "," .. y -- string for table key
-          dfsGroup(x, y, cells[x][y], groupID)
+          dfsGroup(x, y, self.cells[x][y], groupID)
         end
       end
     end
   end
 
+  -- io.write("Groups:\n")
+  -- for x=1,self.n do
+  --   for y=1,self.n do
+  --     local c = cellGroups[x][y]
+  --     io.write(string.format("%s   ", c))
+  --   end
+  --   io.write('\n')
+  -- end
+
   -- liberties are assigned to a group
   local groupLiberties = {}
-  for x=1, N do
-    for y=1, N do
-      local cell = cells[x][y] -- nil or color
+  for x=1, self.n do
+    for y=1, self.n do
+      local cell = self.cells[x][y] -- nil or color
       local groupID = cellGroups[x][y] -- nil or string
 
       if groupID ~= nil then
@@ -78,8 +96,8 @@ function killStones()
         for _, off in ipairs({ {1,0}, {0,1}, {-1, 0}, {0, -1} }) do
           local x_off = off[1]
           local y_off = off[2]
-          if x+x_off > 0 and x+x_off <= N and y+y_off > 0 and y+y_off <= N then
-            local n_cell = cells[x+x_off][y+y_off]
+          if x+x_off > 0 and x+x_off <= self.n and y+y_off > 0 and y+y_off <= self.n then
+            local n_cell = self.cells[x+x_off][y+y_off]
             if n_cell == nil then
               local_liberties = local_liberties + 1
             end
@@ -99,18 +117,24 @@ function killStones()
   --tprint(groupLiberties)
 
   -- kill any stones with zero liberties
-  -- FIXME if the elimination of standing groups is triggered by a new stone
-  -- which also has zero liberties, then the new stone should not get killed
-  -- until the first added group is removed.
-  -- in other words, we should only remove one stone at a time
-  for x=1, N do
-    for y=1, N do
+  -- unless the group is the group that was played
+  -- FIXME need to prevent suicide placements for this logic to hold
+
+  local safeGroup = nil
+  if self.lastX ~= nil then
+    safeGroup = cellGroups[self.lastX][self.lastY]
+  end
+
+  for x=1, self.n do
+    for y=1, self.n do
       local groupID = cellGroups[x][y]
       if groupID ~= nil then
         local liberties = groupLiberties[groupID]
         if liberties == 0 then
-          --print("Cell at ", x, y, "is dead")
-          cells[x][y] = nil
+          if groupID ~= safeGroup then
+            --print("Cell at ", x, y, "is dead")
+            self.cells[x][y] = nil
+          end
         end
       end
     end

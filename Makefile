@@ -8,3 +8,6 @@ GoGame.pdx: $(sources) $(assets)
 
 run: GoGame.pdx
 	open GoGame.pdx
+
+test: $(sources) source/test.lua
+	cd source && lua test.lua

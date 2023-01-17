@@ -7,7 +7,11 @@ import "engine"
 local gfx <const> = playdate.graphics
 
 -- UI/driver state
+local N = 9
 local turn = 1
+local cursorLoc = {x=1, y=1}
+local engine = Engine:new(N)
+local cells = engine.cells
 
 local function drawStone(x, y, color)
   local radius <const> = 5
@@ -80,7 +84,6 @@ local function redraw()
   playdate.display.flush()
 end
 
-
 -- all drawing will be event driven
 playdate.stop()
 redraw()
@@ -107,8 +110,8 @@ local goInputHandlers = {
   end,
 
   AButtonUp = function()
-    if addStone(cursorLoc.x, cursorLoc.y, turn) then
-      killStones()
+    if engine:addStone(cursorLoc.x, cursorLoc.y, turn) then
+      engine:killStones()
 
       if turn==0 then
         turn = 1

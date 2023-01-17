@@ -151,9 +151,40 @@ W W W . .
   cellAssert(5, e.cells, expect)
 end
 
+local function testMultiCapture()
+  -- a single stone captures multiple groups
+  inpt = makeCells(7, [[
+. . . . . . .
+. . . . . . .
+B B . B B B B
+W W B W W W W
+B B . B B B B
+. . . . . . .
+. . . . . . .
+]])
+
+  expect = makeCells(7, [[
+. . . . . . .
+. . . . . . .
+B B . B B B B
+. . B . . . .
+B B . B B B B
+. . . . . . .
+. . . . . . .
+]])
+
+  e = Engine:new(7)
+  e.cells = inpt
+  e.lastX = 3
+  e.lastY = 4
+  e:killStones()
+  cellAssert(7, e.cells, expect)
+end
+
 testCreateGrid()
 test1()
 test2()
 testSimpleKill()
 testComplexKill()
 testNotActuallySuicide()
+testMultiCapture()

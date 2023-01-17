@@ -140,3 +140,5 @@ function Engine:killStones()
     end
   end
 end
+
+-- FIXME allow for passing

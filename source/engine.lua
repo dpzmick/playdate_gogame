@@ -34,12 +34,8 @@ function Engine:addStone(x,y,color)
   c.lastY = y
   c:killStones()
 
-  -- FIXME killStones will not kill because I'm using last group to detect
-  -- death.
-  -- I'm still missing something in this logic
-
   if c.cells[x][y] == nil then
-    -- this was a suicidal play
+    -- this was a suicidal play, detected via awkward logic in killStones
     return false
   end
 
@@ -49,7 +45,8 @@ function Engine:addStone(x,y,color)
   self.lastY = y
   return true
 
-  -- should maybe do uptree style groups
+  -- should maybe do uptree style groups?
+  --  - also non-trivial, state is complex
   --
   -- then do stone additon by:
   -- - add stone to cells and join/create groups
@@ -167,12 +164,26 @@ function Engine:killStones()
   -- end
 
   -- kill any stones with zero liberties
-  -- unless the group is the group that was played
-  -- FIXME need to prevent suicide placements for this logic to hold
+  -- if the only group to die is the last placed group, the last move was suicide, so kill the group (addStone detects this)
+  -- else, do not kill the last group
 
-  local safeGroup = nil
+  local lastStoneGroup = nil
   if self.lastX ~= nil then
-    safeGroup = cellGroups[self.lastX][self.lastY]
+    lastStoneGroup = cellGroups[self.lastX][self.lastY]
+  end
+
+  local groupsToKill = {}
+  for groupID, liberties in pairs(groupLiberties) do
+    if liberties==0 then
+      groupsToKill[#groupsToKill+1] = groupID
+    end
+  end
+
+  local killLastStoneGroup = false
+  if #groupsToKill == 1 then
+    if groupsToKill[1] == lastStoneGroup then
+      killLastStoneGroup = true
+    end
   end
 
   for x=1, self.n do
@@ -181,8 +192,11 @@ function Engine:killStones()
       if groupID ~= nil then
         local liberties = groupLiberties[groupID]
         if liberties == 0 then
-          if groupID ~= safeGroup then
-            --print("Cell at ", x, y, "is dead")
+          if groupID == lastStoneGroup then
+            if killLastStoneGroup then
+              self.cells[x][y] = nil
+            end
+          else
             self.cells[x][y] = nil
           end
         end
@@ -191,5 +205,23 @@ function Engine:killStones()
   end
 end
 
+function Engine:findWinner()
+  -- to remove dead stones we run the game forward many times
+  -- until the state of the stones begins to stabilize
+  -- then stones that are very likely dead are removed
+
+  stoneDeadProb = createGrid()
+
+  -- FIXME stopped here, scoring the game is non-trivial
+
+  while true do
+  end
+
+  -- finally we remove dead stones, then count the surrounded area
+  -- the score is surrounded area + captured stones for each player
+end
+
+-- FIXME track prisoners
 -- FIXME allow for passing (adds a prisoner)
 -- FIXME for final scoring, mark dead strings
+-- FIXME termination logic

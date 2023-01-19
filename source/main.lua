@@ -8,6 +8,7 @@ local gfx <const> = playdate.graphics
 
 -- UI/driver state
 local N = 9
+local lastPass = false
 local turn = 1
 local cursorLoc = {x=1, y=1}
 local engine = Engine:new(N)
@@ -26,7 +27,7 @@ local function drawStone(x, y, color)
   end
 end
 
-local function drawGrid(turn)
+local function drawGrid()
   -- display size is 400x240
   -- grid is 19x19 or 9x9
 
@@ -80,7 +81,7 @@ end
 
 local function redraw()
   gfx.clear()
-  drawGrid(N)
+  drawGrid()
   playdate.display.flush()
 end
 
@@ -119,6 +120,25 @@ local goInputHandlers = {
         turn = 0
       end
 
+      lastPass = false
+      redraw()
+    end
+  end,
+
+  -- pass
+  BButtonUp = function()
+    if turn==0 then
+      turn = 1
+    else
+      turn = 0
+    end
+
+    if lastPass then
+      -- game is over
+      local winner = engine:findWinner()
+      redraw()
+    else
+      lastPass = true
       redraw()
     end
   end,
